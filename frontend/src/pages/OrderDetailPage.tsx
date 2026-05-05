@@ -231,7 +231,7 @@ export const OrderDetailPage: React.FC = () => {
             {order.items.map((item) => (
               <div key={item.id} className="flex justify-between items-center">
                 <div>
-                  <div className="font-medium">Product #{item.product_id}</div>
+                  <div className="font-medium">{item.product_name || `Product #${item.product_id}`}</div>
                   <div className="text-sm text-gray-500">
                     ${item.price_at_time.toFixed(2)} × {item.quantity}
                   </div>

@@ -9,7 +9,12 @@ from app.schemas.schemas import OrderCreate, OrderResponse, OrderItemResponse, P
 router = APIRouter(prefix="/orders", tags=["orders"])
 
 
-def build_order_response(order: Order, items: list, payment_receipt: PaymentReceipt | None = None) -> OrderResponse:
+def build_order_response(
+    order: Order,
+    items: list,
+    payment_receipt: PaymentReceipt | None = None,
+    products: dict[int, Product] | None = None
+) -> OrderResponse:
     """Helper to build OrderResponse with items and optional payment receipt."""
     receipt_response = None
     if payment_receipt:
@@ -20,20 +25,24 @@ def build_order_response(order: Order, items: list, payment_receipt: PaymentRece
             uploaded_at=payment_receipt.uploaded_at.isoformat() if payment_receipt.uploaded_at else None,
         )
 
+    def get_item_response(item: OrderItem) -> OrderItemResponse:
+        product_name = None
+        if products and item.product_id in products:
+            product_name = products[item.product_id].name
+        return OrderItemResponse(
+            id=item.id,
+            product_id=item.product_id,
+            product_name=product_name,
+            quantity=item.quantity,
+            price_at_time=item.price_at_time,
+        )
+
     return OrderResponse(
         id=order.id,
         total_amount=order.total_amount,
         status=order.status,
         created_at=order.created_at.isoformat() if order.created_at else None,
-        items=[
-            OrderItemResponse(
-                id=item.id,
-                product_id=item.product_id,
-                quantity=item.quantity,
-                price_at_time=item.price_at_time,
-            )
-            for item in items
-        ],
+        items=[get_item_response(item) for item in items],
         payment_receipt=receipt_response,
     )
 
@@ -100,6 +109,13 @@ async def create_order(
 
         await session.commit()
 
+    # Fetch products for item names (after commit since products were modified in transaction)
+    product_ids_in_order = [item_data["product_id"] for item_data in order_items_data]
+    products_result = await session.execute(
+        select(Product).where(Product.id.in_(product_ids_in_order))
+    )
+    products_map = {p.id: p for p in products_result.scalars().all()}
+
     result = await session.execute(select(Order).where(Order.id == new_order.id))
     created_order = result.scalar_one()
 
@@ -108,7 +124,7 @@ async def create_order(
     )
     items = items_result.scalars().all()
 
-    return build_order_response(created_order, items, None)
+    return build_order_response(created_order, items, None, products_map)
 
 
 @router.get("", response_model=list[OrderResponse])
@@ -143,12 +159,18 @@ async def list_orders(
         )
         items = items_result.scalars().all()
 
+        # Fetch products for item names
+        product_ids = list(set(item.product_id for item in items))
+        products_result = await session.execute(
+            select(Product).where(Product.id.in_(product_ids)))
+        products_map = {p.id: p for p in products_result.scalars().all()}
+
         receipt_result = await session.execute(
             select(PaymentReceipt).where(PaymentReceipt.order_id == order.id)
         )
         receipt = receipt_result.scalar_one_or_none()
 
-        orders_with_items.append(build_order_response(order, items, receipt))
+        orders_with_items.append(build_order_response(order, items, receipt, products_map))
 
     return orders_with_items
 
@@ -174,4 +196,10 @@ async def get_order(
     )
     receipt = receipt_result.scalar_one_or_none()
 
-    return build_order_response(order, items, receipt)
+    # Fetch products for item names
+    product_ids = list(set(item.product_id for item in items))
+    products_result = await session.execute(
+        select(Product).where(Product.id.in_(product_ids)))
+    products_map = {p.id: p for p in products_result.scalars().all()}
+
+    return build_order_response(order, items, receipt, products_map)

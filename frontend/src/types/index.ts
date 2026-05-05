@@ -65,6 +65,7 @@ export interface OrderItemCreate {
 export interface OrderItemResponse {
   id: number;
   product_id: number;
+  product_name?: string;
   quantity: number;
   price_at_time: number;
 }

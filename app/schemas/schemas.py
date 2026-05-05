@@ -27,6 +27,7 @@ class OrderItemCreate(BaseModel):
 class OrderItemResponse(BaseModel):
     id: int
     product_id: int
+    product_name: str | None = None
     quantity: int
     price_at_time: float
 
