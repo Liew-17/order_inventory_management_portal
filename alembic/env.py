@@ -1,4 +1,6 @@
 import asyncio
+import os
+import re
 from logging.config import fileConfig
 
 from alembic import context
@@ -9,6 +11,13 @@ from sqlalchemy.ext.asyncio import async_engine_from_config
 from app.models.models import SQLModel
 
 config = context.config
+
+# Inject password from environment variable
+db_password = os.getenv("DB_PASSWORD", "12345678")
+url = config.get_main_option("sqlalchemy.url")
+if url:
+    url = re.sub(r':[^:@]+@', f':{db_password}@', url)
+    config.set_main_option("sqlalchemy.url", url)
 
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
