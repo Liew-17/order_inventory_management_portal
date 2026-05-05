@@ -1,3 +1,4 @@
+from datetime import datetime
 from pydantic import BaseModel, Field
 from app.models.models import OrderStatus
 
@@ -12,7 +13,7 @@ class ProductBase(BaseModel):
 
 class ProductResponse(ProductBase):
     id: int
-    updated_at: str | None = None
+    updated_at: datetime | None = None
 
     class Config:
         from_attributes = True
@@ -37,22 +38,23 @@ class OrderCreate(BaseModel):
     items: list[OrderItemCreate]
 
 
+class PaymentReceiptResponse(BaseModel):
+    id: int
+    order_id: str
+    file_path: str
+    uploaded_at: str | None = None
+
+    class Config:
+        from_attributes = True
+
+
 class OrderResponse(BaseModel):
     id: str
     total_amount: float
     status: OrderStatus
     created_at: str | None = None
     items: list[OrderItemResponse] = []
-
-    class Config:
-        from_attributes = True
-
-
-class PaymentReceiptResponse(BaseModel):
-    id: int
-    order_id: str
-    file_path: str
-    uploaded_at: str | None = None
+    payment_receipt: PaymentReceiptResponse | None = None
 
     class Config:
         from_attributes = True

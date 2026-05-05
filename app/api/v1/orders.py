@@ -1,12 +1,41 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy import select, update, cast, String
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, update
 
 from app.db.database import get_session
-from app.models.models import Order, OrderItem, Product, OrderStatus
-from app.schemas.schemas import OrderCreate, OrderResponse, OrderItemResponse
+from app.models.models import Order, OrderItem, Product, OrderStatus, PaymentReceipt
+from app.schemas.schemas import OrderCreate, OrderResponse, OrderItemResponse, PaymentReceiptResponse
 
 router = APIRouter(prefix="/orders", tags=["orders"])
+
+
+def build_order_response(order: Order, items: list, payment_receipt: PaymentReceipt | None = None) -> OrderResponse:
+    """Helper to build OrderResponse with items and optional payment receipt."""
+    receipt_response = None
+    if payment_receipt:
+        receipt_response = PaymentReceiptResponse(
+            id=payment_receipt.id,
+            order_id=payment_receipt.order_id,
+            file_path=payment_receipt.file_path,
+            uploaded_at=payment_receipt.uploaded_at.isoformat() if payment_receipt.uploaded_at else None,
+        )
+
+    return OrderResponse(
+        id=order.id,
+        total_amount=order.total_amount,
+        status=order.status,
+        created_at=order.created_at.isoformat() if order.created_at else None,
+        items=[
+            OrderItemResponse(
+                id=item.id,
+                product_id=item.product_id,
+                quantity=item.quantity,
+                price_at_time=item.price_at_time,
+            )
+            for item in items
+        ],
+        payment_receipt=receipt_response,
+    )
 
 
 @router.post("", response_model=OrderResponse, status_code=201)
@@ -79,21 +108,49 @@ async def create_order(
     )
     items = items_result.scalars().all()
 
-    return OrderResponse(
-        id=created_order.id,
-        total_amount=created_order.total_amount,
-        status=created_order.status,
-        created_at=created_order.created_at.isoformat() if created_order.created_at else None,
-        items=[
-            OrderItemResponse(
-                id=item.id,
-                product_id=item.product_id,
-                quantity=item.quantity,
-                price_at_time=item.price_at_time,
-            )
-            for item in items
-        ],
-    )
+    return build_order_response(created_order, items, None)
+
+
+@router.get("", response_model=list[OrderResponse])
+async def list_orders(
+    order_id: str | None = Query(None, description="Filter by order ID"),
+    status: str | None = Query(None, description="Filter by status"),
+    session: AsyncSession = Depends(get_session),
+):
+    """
+    Get list of orders with optional filters.
+    - If order_id is provided, returns only that specific order
+    - If status is provided, filters by order status
+    """
+    query = select(Order)
+
+    if order_id:
+        query = query.where(Order.id == order_id)
+    elif status:
+        # Cast status column to text for comparison since DB stores VARCHAR
+        query = query.where(cast(Order.status, String) == status)
+
+    query = query.order_by(Order.created_at.desc())
+
+    result = await session.execute(query)
+    orders = result.scalars().all()
+
+    # Fetch items and payment receipt for each order
+    orders_with_items = []
+    for order in orders:
+        items_result = await session.execute(
+            select(OrderItem).where(OrderItem.order_id == order.id)
+        )
+        items = items_result.scalars().all()
+
+        receipt_result = await session.execute(
+            select(PaymentReceipt).where(PaymentReceipt.order_id == order.id)
+        )
+        receipt = receipt_result.scalar_one_or_none()
+
+        orders_with_items.append(build_order_response(order, items, receipt))
+
+    return orders_with_items
 
 
 @router.get("/{order_id}", response_model=OrderResponse)
@@ -102,7 +159,7 @@ async def get_order(
     session: AsyncSession = Depends(get_session),
 ):
     result = await session.execute(select(Order).where(Order.id == order_id))
-    order = result.scalar_one_orNone()
+    order = result.scalar_one_or_none()
 
     if not order:
         raise HTTPException(status_code=404, detail="Order not found")
@@ -112,18 +169,9 @@ async def get_order(
     )
     items = items_result.scalars().all()
 
-    return OrderResponse(
-        id=order.id,
-        total_amount=order.total_amount,
-        status=order.status,
-        created_at=order.created_at.isoformat() if order.created_at else None,
-        items=[
-            OrderItemResponse(
-                id=item.id,
-                product_id=item.product_id,
-                quantity=item.quantity,
-                price_at_time=item.price_at_time,
-            )
-            for item in items
-        ],
+    receipt_result = await session.execute(
+        select(PaymentReceipt).where(PaymentReceipt.order_id == order_id)
     )
+    receipt = receipt_result.scalar_one_or_none()
+
+    return build_order_response(order, items, receipt)
