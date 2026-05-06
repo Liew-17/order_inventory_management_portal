@@ -56,21 +56,31 @@ apiClient.interceptors.response.use(
     if (error.response) {
       // 服务器返回了错误状态码（400, 404, 500 等）
       const status = error.response.status;
-      const data = error.response.data as { detail?: string };
+      const data = error.response.data as { detail?: string | unknown[] | { msg: string; loc: string[] }[] };
 
-      console.error(`[API Error] ${status}:`, data.detail || error.message);
+      let errorMessage = '请求失败';
+      if (typeof data.detail === 'string') {
+        errorMessage = data.detail;
+      } else if (Array.isArray(data.detail)) {
+        errorMessage = data.detail.map((e: { msg: string; loc: string[] }) => `${e.loc.join('.')}: ${e.msg}`).join('; ');
+      } else if (data.detail && typeof data.detail === 'object' && 'msg' in (data.detail as object)) {
+        const e = data.detail as { msg: string; loc: string[] };
+        errorMessage = `${e.loc.join('.')}: ${e.msg}`;
+      }
 
-      // 根据状态码添加业务含义
+      console.error(`[API Error] ${status}:`, errorMessage);
+
       switch (status) {
         case 400:
-          // 库存不足或参数错误
-          throw new Error(data.detail || '请求参数错误');
+          throw new Error(errorMessage || '请求参数错误');
         case 404:
-          throw new Error(data.detail || '资源不存在');
+          throw new Error(errorMessage || '资源不存在');
+        case 422:
+          throw new Error(errorMessage || '数据验证错误');
         case 500:
-          throw new Error(data.detail || '服务器内部错误');
+          throw new Error(errorMessage || '服务器内部错误');
         default:
-          throw new Error(data.detail || '请求失败');
+          throw new Error(errorMessage || '请求失败');
       }
     } else if (error.request) {
       // 请求已发送但没有收到响应（通常是 CORS 或网络问题）

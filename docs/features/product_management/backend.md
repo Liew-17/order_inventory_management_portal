@@ -1,7 +1,7 @@
 # 轻量级订货与库存管理门户 - 商品管理后端需求 (V1.1)
 
 **Context for AI Assistant (Claude Code):** 
-> This file is located at `/features/product_management/backend.md`. It is a feature extension. You must reference and strictly adhere to the base database and backend architecture defined in the file named "backend_db_requirements_v1.md".
+> This file is located at `/features/product_management/backend.md`. It is a feature extension. You must reference and strictly adhere to the base database and backend architecture defined in the file named "backend_db_requirements.md".
 
 ## 1. 模块概览
 本模块属于后台管理（Admin）功能，允许管理员添加新商品、修改商品基础信息、上传商品图片、安全地调整库存（增/减），以及下架（软删除）商品。此模块需完全融入现有的 FastAPI 和 PostgreSQL 架构。

@@ -32,7 +32,7 @@ export async function fetchProducts(
   limit: number = 100
 ): Promise<Product[]> {
   const params = new URLSearchParams();
-  if (search) params.append('search', search);
+  if (search && search.trim()) params.append('search', search.trim());
   params.append('skip', String(skip));
   params.append('limit', String(limit));
 
@@ -133,4 +133,71 @@ export async function uploadPaymentReceipt(
       }
     },
   });
+}
+
+// ========== Admin Product APIs (Modules D-H) ==========
+
+export interface ProductCreate {
+  name: string;
+  price: number;
+  initial_stock: number;
+}
+
+export interface ProductUpdate {
+  name: string;
+  price: number;
+}
+
+export interface StockAdjust {
+  adjustment: number;
+}
+
+export async function createProduct(data: ProductCreate): Promise<Product[]> {
+  const response = await apiClient.post<Product[]>('/admin/products', data);
+  return response.data;
+}
+
+export async function updateProduct(
+  productId: number,
+  name: string,
+  price: number
+): Promise<Product> {
+  const response = await apiClient.put<Product>(`/admin/products/${productId}`, { name, price });
+  return response.data;
+}
+
+export async function uploadProductImage(
+  productId: number,
+  file: File,
+  onProgress?: (percent: number) => void
+): Promise<{ image_path: string }> {
+  const formData = new FormData();
+  formData.append('file', file);
+
+  const response = await apiClient.post<{ image_path: string }>(
+    `/admin/products/${productId}/image`,
+    formData,
+    {
+      headers: { 'Content-Type': 'multipart/form-data' },
+      onUploadProgress: (progressEvent) => {
+        if (onProgress && progressEvent.total) {
+          const percent = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+          onProgress(percent);
+        }
+      },
+    }
+  );
+  return response.data;
+}
+
+export async function adjustStock(
+  productId: number,
+  adjustment: number
+): Promise<Product> {
+  const response = await apiClient.patch<Product>(`/admin/products/${productId}/stock`, { adjustment });
+  return response.data;
+}
+
+export async function softDeleteProduct(productId: number): Promise<void> {
+  await apiClient.delete(`/admin/products/${productId}`);
 }

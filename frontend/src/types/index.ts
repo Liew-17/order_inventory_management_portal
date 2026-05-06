@@ -31,6 +31,7 @@ export interface ProductBase {
  */
 export interface Product extends ProductBase {
   id: number;
+  is_active: boolean;
   updated_at?: string;
 }
 

@@ -21,6 +21,7 @@ class Product(SQLModel, table=True):
     price: float = Field(nullable=False)
     stock_balance: int = Field(nullable=False, ge=0)
     image_path: Optional[str] = Field(default=None)
+    is_active: bool = Field(default=True, nullable=False)
     updated_at: Optional[datetime] = Field(default_factory=datetime.utcnow)
 
 

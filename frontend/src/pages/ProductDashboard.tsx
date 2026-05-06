@@ -74,7 +74,15 @@ export const ProductDashboard: React.FC = () => {
             to="/orders"
             className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 flex items-center gap-2"
           >
-            📋 My Orders
+            My Orders
+          </Link>
+
+          {/* Admin Manage Products button */}
+          <Link
+            to="/admin/products"
+            className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 flex items-center gap-2"
+          >
+            Manage Products
           </Link>
 
           {/* Spacer to push cart to right */}

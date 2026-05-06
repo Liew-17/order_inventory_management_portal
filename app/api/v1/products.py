@@ -16,7 +16,7 @@ async def list_products(
     search: str | None = None,
     session: AsyncSession = Depends(get_session),
 ):
-    query = select(Product)
+    query = select(Product).where(Product.is_active == True)
     if search:
         query = query.where(
             Product.name.ilike(f"%{search}%") | Product.sku.ilike(f"%{search}%")

@@ -9,6 +9,7 @@ class ProductBase(BaseModel):
     price: float = Field(gt=0)
     stock_balance: int = Field(ge=0)
     image_path: str | None = None
+    is_active: bool = True
 
 
 class ProductResponse(ProductBase):

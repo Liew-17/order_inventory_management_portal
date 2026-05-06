@@ -1,7 +1,7 @@
 # 轻量级订货与库存管理门户 - 商品管理前端需求 
 
 **Context for AI Assistant (Claude Code):** 
-> This file is located at `/features/product_management/frontend.md`. It is a feature extension. You must reference and strictly adhere to the base UI/UX principles and tech stack defined in the file named "frontend_requirements_v2.md".
+> This file is located at `/features/product_management/frontend.md`. It is a feature extension. You must reference and strictly adhere to the base UI/UX principles and tech stack defined in the file named "frontend_requirements.md".
 
 ## 1. 模块概览
 此文档扩展了现有的前端应用，引入了“商品管理 (Product Management)”模块。请确保所有新增 UI 严格遵守移动端优先 (Mobile-First) 和全英文 UI 文本的要求。
