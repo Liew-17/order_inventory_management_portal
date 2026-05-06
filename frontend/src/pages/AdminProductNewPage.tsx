@@ -47,61 +47,88 @@ export function AdminProductNewPage() {
       </div>
 
       <div className="p-3">
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 space-y-3">
-          {error && (
-            <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">
-              {error}
-            </div>
-          )}
+        <div className="max-w-md mx-auto">
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 space-y-3">
+            {error && (
+              <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">
+                {error}
+              </div>
+            )}
 
-          <form onSubmit={handleSubmit} className="space-y-3">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Product Name</label>
-              <input
-                type="text"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                required
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-                placeholder="e.g. Wireless Mouse"
-              />
-            </div>
+            <form onSubmit={handleSubmit} className="space-y-3">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Product Name</label>
+                <input
+                  type="text"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  required
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                  placeholder="e.g. Wireless Mouse"
+                />
+              </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Unit Price ($)</label>
-              <input
-                type="number"
-                step="0.01"
-                min="0.01"
-                value={price}
-                onChange={(e) => setPrice(e.target.value)}
-                required
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-                placeholder="0.00"
-              />
-            </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Unit Price ($)</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0.01"
+                  value={price}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    if (value === '' || value === '-') {
+                      setPrice('');
+                      return;
+                    }
+                    const parsed = parseFloat(value);
+                    if (isNaN(parsed) || parsed <= 0) {
+                      setPrice('');
+                    } else {
+                      setPrice(value);
+                    }
+                  }}
+                  required
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                  placeholder="0.00"
+                />
+              </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Initial Stock</label>
-              <input
-                type="number"
-                min="0"
-                value={initialStock}
-                onChange={(e) => setInitialStock(e.target.value)}
-                required
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-                placeholder="0"
-              />
-            </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Initial Stock</label>
+                <input
+                  type="number"
+                  min="0"
+                  step="1"
+                  value={initialStock}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    if (value === '' || value === '-') {
+                      setInitialStock('');
+                      return;
+                    }
+                    const parsed = parseInt(value, 10);
+                    if (isNaN(parsed) || parsed < 0) {
+                      setInitialStock('0');
+                    } else {
+                      setInitialStock(String(parsed));
+                    }
+                  }}
+                  required
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                  placeholder="0"
+                />
+              </div>
 
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full py-2 rounded-lg bg-blue-600 text-white font-medium text-sm hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
-            >
-              {loading ? 'Adding...' : 'Add Product'}
-            </button>
-          </form>
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full py-2 rounded-lg bg-blue-600 text-white font-medium text-sm hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
+              >
+                {loading ? 'Adding...' : 'Add Product'}
+              </button>
+            </form>
+          </div>
         </div>
       </div>
     </div>

@@ -50,7 +50,7 @@ class StockAdjust(BaseModel):
 
 # --- Module D: Create Product ---
 
-@router.post("", response_model=ProductResponse, status_code=201)
+@router.post("", response_model=list[ProductResponse], status_code=201)
 async def create_product(
     products_data: list[ProductCreate],
     session: AsyncSession = Depends(get_session),
@@ -117,7 +117,7 @@ async def upload_product_image(
 
     file_ext = os.path.splitext(file.filename or "")[1] or ".bin"
     unique_filename = f"{uuid.uuid4()}{file_ext}"
-    file_path = os.path.join(settings.UPLOAD_DIR, unique_filename)
+    file_path = os.path.join(settings.UPLOAD_DIR, "product", unique_filename)
 
     background_tasks.add_task(save_file_background, file, file_path)
 

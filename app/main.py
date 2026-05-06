@@ -40,6 +40,7 @@ app.include_router(api_router, prefix=settings.API_V1_PREFIX)
 
 # Serve uploaded files statically at /uploads/*
 # Frontend accesses images via: http://localhost:8000/uploads/products/image.jpg
+# or http://localhost:8000/uploads/payment/image.jpg
 if os.path.exists(UPLOADS_DIR):
     app.mount("/uploads", StaticFiles(directory=UPLOADS_DIR), name="uploads")
 

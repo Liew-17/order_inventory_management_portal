@@ -49,7 +49,7 @@ async def upload_payment_receipt(
 
     file_ext = os.path.splitext(file.filename or "")[1] or ".bin"
     unique_filename = f"{uuid.uuid4()}{file_ext}"
-    file_path = os.path.join(settings.UPLOAD_DIR, unique_filename)
+    file_path = os.path.join(settings.UPLOAD_DIR, "receipt", unique_filename)
 
     background_tasks.add_task(save_file_background, file, file_path)
 

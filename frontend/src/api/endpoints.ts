@@ -159,7 +159,7 @@ export interface StockAdjust {
 }
 
 export async function createProduct(data: ProductCreate): Promise<Product[]> {
-  const response = await apiClient.post<Product[]>('/admin/products', data);
+  const response = await apiClient.post<Product[]>('/admin/products', [data]);
   return response.data;
 }
 
