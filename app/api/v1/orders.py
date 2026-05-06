@@ -129,25 +129,34 @@ async def create_order(
 
 @router.get("", response_model=list[OrderResponse])
 async def list_orders(
-    order_id: str | None = Query(None, description="Filter by order ID"),
+    order_id: str | None = Query(None, description="Filter by order ID (partial match supported)"),
     status: str | None = Query(None, description="Filter by status"),
+    skip: int = Query(0, ge=0, description="Number of records to skip"),
+    limit: int = Query(25, ge=1, le=100, description="Max number of records to return"),
     session: AsyncSession = Depends(get_session),
 ):
     """
-    Get list of orders with optional filters.
-    - If order_id is provided, returns only that specific order
+    Get list of orders with optional filters and pagination.
+    - If order_id is provided, returns orders matching the ID (partial match supported)
     - If status is provided, filters by order status
+    - Supports pagination via skip and limit
     """
     query = select(Order)
 
     if order_id:
-        query = query.where(Order.id == order_id)
-    elif status:
-        # Cast status column to text for comparison since DB stores VARCHAR
+        query = query.where(Order.id.ilike(f"%{order_id}%"))
+    if status:
         query = query.where(cast(Order.status, String) == status)
 
     query = query.order_by(Order.created_at.desc())
 
+    # Get total count before pagination
+    count_query = select(Order.id).where(query.whereclause) if query.whereclause is not None else select(Order.id)
+    count_result = await session.execute(count_query)
+    total_count = len(count_result.scalars().all())
+
+    # Apply pagination
+    query = query.offset(skip).limit(limit)
     result = await session.execute(query)
     orders = result.scalars().all()
 
@@ -159,7 +168,6 @@ async def list_orders(
         )
         items = items_result.scalars().all()
 
-        # Fetch products for item names
         product_ids = list(set(item.product_id for item in items))
         products_result = await session.execute(
             select(Product).where(Product.id.in_(product_ids)))

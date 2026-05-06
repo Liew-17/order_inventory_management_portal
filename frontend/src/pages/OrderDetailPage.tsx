@@ -17,14 +17,22 @@
  * COMPLETED → Show "Completed" message
  */
 
-import React, { useEffect, useState, useCallback } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import { clsx } from 'clsx';
 import { fetchOrder, uploadPaymentReceipt } from '../api/endpoints';
 import type { OrderResponse, OrderStatus } from '../types';
 
 // Backend server URL for static file serving
-const STATIC_BASE_URL = import.meta.env.VITE_STATIC_BASE_URL || 'http://localhost:8000';
+const getStaticBaseUrl = () => {
+  if (import.meta.env.VITE_STATIC_BASE_URL) {
+    return import.meta.env.VITE_STATIC_BASE_URL;
+  }
+  const protocol = window.location.protocol;
+  const hostname = window.location.hostname;
+  return `${protocol}//${hostname}:8000`;
+};
+const STATIC_BASE_URL = getStaticBaseUrl();
 
 // Construct full URL for static files
 const getStaticUrl = (path: string): string => {
@@ -51,6 +59,9 @@ const orderStatusConfig: Record<OrderStatus, { label: string; className: string 
 
 export const OrderDetailPage: React.FC = () => {
   const { orderId } = useParams<{ orderId: string }>();
+  const navigate = useNavigate();
+  const cameraInputRef = useRef<HTMLInputElement>(null);
+  const galleryInputRef = useRef<HTMLInputElement>(null);
 
   // Local state
   const [order, setOrder] = useState<OrderResponse | null>(null);
@@ -59,9 +70,11 @@ export const OrderDetailPage: React.FC = () => {
 
   // File upload related state
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [showReceiptModal, setShowReceiptModal] = useState(false);
 
   // Load order data
   const loadOrder = useCallback(async () => {
@@ -96,9 +109,24 @@ export const OrderDetailPage: React.FC = () => {
         return;
       }
       setSelectedFile(file);
+      // Create preview URL for images
+      if (file.type.startsWith('image/')) {
+        setPreviewUrl(URL.createObjectURL(file));
+      } else {
+        setPreviewUrl(null);
+      }
       setUploadError(null);
     }
   };
+
+  // Cleanup preview URL on unmount
+  useEffect(() => {
+    return () => {
+      if (previewUrl) {
+        URL.revokeObjectURL(previewUrl);
+      }
+    };
+  }, [previewUrl]);
 
   // Handle file upload
   const handleUpload = async () => {
@@ -119,27 +147,16 @@ export const OrderDetailPage: React.FC = () => {
       await loadOrder();
 
       // Clear file selection
+      if (previewUrl) {
+        URL.revokeObjectURL(previewUrl);
+      }
       setSelectedFile(null);
+      setPreviewUrl(null);
     } catch (err) {
       setUploadError(err instanceof Error ? err.message : 'Upload failed');
     } finally {
       setUploading(false);
       setUploadProgress(0);
-    }
-  };
-
-  // Handle drag and drop upload
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    const file = e.dataTransfer.files?.[0];
-    if (file) {
-      const validTypes = ['image/jpeg', 'image/png', 'image/gif', 'application/pdf'];
-      if (!validTypes.includes(file.type)) {
-        setUploadError('Please select an image or PDF file');
-        return;
-      }
-      setSelectedFile(file);
-      setUploadError(null);
     }
   };
 
@@ -189,18 +206,14 @@ export const OrderDetailPage: React.FC = () => {
     <div className="min-h-screen bg-gray-100">
       {/* Top navigation */}
       <div className="sticky top-0 bg-white shadow-sm z-10 p-4">
-        <div className="flex items-center gap-3">
-          {/* Back button */}
-          <Link
-            to="/"
-            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => navigate('/')}
+            className="p-2 hover:bg-gray-100 rounded-lg transition-colors shrink-0"
           >
             ←
-          </Link>
-          <div>
-            <h1 className="text-lg font-bold">Order Details</h1>
-            <p className="text-sm text-gray-500">Order ID: {order.id}</p>
-          </div>
+          </button>
+          <h1 className="text-base font-bold">Order Details</h1>
         </div>
       </div>
 
@@ -248,13 +261,15 @@ export const OrderDetailPage: React.FC = () => {
         {order.payment_receipt && (
           <div className="bg-white rounded-lg p-4 shadow-sm">
             <h2 className="font-medium mb-3">Payment Receipt</h2>
-            <div className="border rounded-lg overflow-hidden max-w-md mx-auto">
+            <div
+              className="border rounded-lg overflow-hidden max-w-md mx-auto cursor-pointer hover:opacity-90"
+              onClick={() => setShowReceiptModal(true)}
+            >
               <img
                 src={getStaticUrl(order.payment_receipt.file_path)}
                 alt="Payment Receipt"
                 className="w-full h-auto object-contain max-h-64"
                 onError={(e) => {
-                  // Fallback for PDF or if image fails to load
                   (e.target as HTMLImageElement).style.display = 'none';
                   const fallback = document.getElementById(`receipt-fallback-${order.id}`);
                   if (fallback) fallback.style.display = 'block';
@@ -276,51 +291,105 @@ export const OrderDetailPage: React.FC = () => {
           </div>
         )}
 
+        {/* Receipt Image Modal */}
+        {showReceiptModal && order.payment_receipt && (
+          <>
+            <div
+              className="fixed inset-0 bg-black/90 z-50"
+              onClick={() => setShowReceiptModal(false)}
+            />
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+              <button
+                onClick={() => setShowReceiptModal(false)}
+                className="absolute top-4 right-4 p-2 bg-white/20 hover:bg-white/30 rounded-full text-white text-2xl"
+              >
+                ×
+              </button>
+              <img
+                src={getStaticUrl(order.payment_receipt.file_path)}
+                alt="Payment Receipt"
+                className="max-w-full max-h-full object-contain"
+                onClick={(e) => e.stopPropagation()}
+              />
+            </div>
+          </>
+        )}
+
         {/* Payment receipt upload area */}
         {canUpload && (
           <div className="bg-white rounded-lg p-4 shadow-sm">
             <h2 className="font-medium mb-3">Upload Payment Receipt</h2>
 
-            {/* Drag and drop upload area */}
-            <div
-              onDrop={handleDrop}
-              onDragOver={(e) => e.preventDefault()}
-              className={clsx(
-                'border-2 border-dashed rounded-lg p-6 text-center',
-                selectedFile ? 'border-blue-500 bg-blue-50' : 'border-gray-300'
-              )}
-            >
-              {selectedFile ? (
-                <div>
-                  <p className="text-blue-600 font-medium">{selectedFile.name}</p>
-                  <p className="text-sm text-gray-500">
+            {/* Image preview */}
+            {previewUrl && (
+              <div className="mb-3 border rounded-lg overflow-hidden">
+                <img
+                  src={previewUrl}
+                  alt="Preview"
+                  className="w-full h-48 object-contain bg-gray-100"
+                />
+              </div>
+            )}
+
+            {/* Upload buttons - Camera and Gallery */}
+            <div className="flex gap-2 mb-3">
+              {/* Camera button */}
+              <button
+                onClick={() => cameraInputRef.current?.click()}
+                className="flex-1 py-3 rounded-lg bg-gray-100 text-gray-700 font-medium text-center cursor-pointer hover:bg-gray-200"
+              >
+                <span className="block text-lg">📷</span>
+                <span className="text-xs">Camera</span>
+              </button>
+
+              {/* Gallery button */}
+              <button
+                onClick={() => galleryInputRef.current?.click()}
+                className="flex-1 py-3 rounded-lg bg-gray-100 text-gray-700 font-medium text-center cursor-pointer hover:bg-gray-200"
+              >
+                <span className="block text-lg">🖼️</span>
+                <span className="text-xs">Gallery</span>
+              </button>
+            </div>
+
+            {/* Hidden file inputs */}
+            <input
+              ref={cameraInputRef}
+              type="file"
+              accept="image/*"
+              capture="environment"
+              onChange={handleFileChange}
+              className="hidden"
+            />
+            <input
+              ref={galleryInputRef}
+              type="file"
+              accept="image/*,.pdf"
+              onChange={handleFileChange}
+              className="hidden"
+            />
+
+            {/* Selected file info */}
+            {selectedFile && (
+              <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm text-gray-700 truncate">{selectedFile.name}</p>
+                  <p className="text-xs text-gray-500">
                     {(selectedFile.size / 1024).toFixed(1)} KB
                   </p>
-                  <button
-                    onClick={() => setSelectedFile(null)}
-                    className="mt-2 text-sm text-red-500 hover:text-red-700"
-                  >
-                    Remove
-                  </button>
                 </div>
-              ) : (
-                <div>
-                  <p className="text-gray-500">Drag file here, or</p>
-                  <label className="text-blue-600 hover:text-blue-700 cursor-pointer">
-                    Click to select
-                    <input
-                      type="file"
-                      accept="image/*,.pdf"
-                      onChange={handleFileChange}
-                      className="hidden"
-                    />
-                  </label>
-                  <p className="text-xs text-gray-400 mt-2">
-                    Supports JPG, PNG, GIF, PDF
-                  </p>
-                </div>
-              )}
-            </div>
+                <button
+                  onClick={() => {
+                    if (previewUrl) URL.revokeObjectURL(previewUrl);
+                    setSelectedFile(null);
+                    setPreviewUrl(null);
+                  }}
+                  className="ml-2 p-2 text-red-500 hover:text-red-700"
+                >
+                  ×
+                </button>
+              </div>
+            )}
 
             {/* Upload error */}
             {uploadError && (

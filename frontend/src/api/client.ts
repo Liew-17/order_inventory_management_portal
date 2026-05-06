@@ -12,9 +12,19 @@ import axios, { type AxiosInstance, type AxiosError } from 'axios';
 
 // 创建 axios 实例，配置 baseURL
 // 注意：开发环境指向后端地址，生产环境替换为实际域名
+const getApiBaseUrl = () => {
+  if (import.meta.env.VITE_API_BASE_URL) {
+    return import.meta.env.VITE_API_BASE_URL;
+  }
+  // Use hostname for mobile access
+  const protocol = window.location.protocol;
+  const hostname = window.location.hostname;
+  return `${protocol}//${hostname}:8000/api/v1`;
+};
+
 const apiClient: AxiosInstance = axios.create({
   // 后端 FastAPI 服务的地址 + API 前缀
-  baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api/v1',
+  baseURL: getApiBaseUrl(),
   timeout: 30000,
   headers: {
     'Content-Type': 'application/json',

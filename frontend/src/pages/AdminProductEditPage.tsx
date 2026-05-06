@@ -6,7 +6,15 @@ import type { Product } from '../types';
 import { useToast } from '../components/Toast';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 
-const STATIC_BASE_URL = import.meta.env.VITE_STATIC_BASE_URL || 'http://localhost:8000';
+const getStaticBaseUrl = () => {
+  if (import.meta.env.VITE_STATIC_BASE_URL) {
+    return import.meta.env.VITE_STATIC_BASE_URL;
+  }
+  const protocol = window.location.protocol;
+  const hostname = window.location.hostname;
+  return `${protocol}//${hostname}:8000`;
+};
+const STATIC_BASE_URL = getStaticBaseUrl();
 
 function getImageUrl(imagePath: string | null | undefined): string {
   if (!imagePath) return '';
@@ -137,21 +145,21 @@ export function AdminProductEditPage() {
   return (
     <div className="min-h-screen bg-gray-100">
       <div className="sticky top-0 bg-white shadow-sm z-10 p-4">
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
           <button
             onClick={() => navigate('/admin/products')}
-            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+            className="p-2 hover:bg-gray-100 rounded-lg transition-colors shrink-0"
           >
             ←
           </button>
-          <h1 className="text-lg font-bold text-gray-900">Edit Product</h1>
+          <h1 className="text-base font-bold text-gray-900 truncate">Edit Product</h1>
         </div>
       </div>
 
-      <div className="p-4 space-y-4 max-w-lg mx-auto">
+      <div className="p-3 space-y-3">
         {/* Section 1: Info & Image */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 space-y-4">
-          <h2 className="font-semibold text-gray-900">Product Info & Image</h2>
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3 space-y-3">
+          <h2 className="font-semibold text-gray-900 text-sm">Product Info & Image</h2>
 
           <form onSubmit={handleSaveInfo} className="space-y-3">
             <div>
@@ -161,7 +169,7 @@ export function AdminProductEditPage() {
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 required
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
               />
             </div>
             <div>
@@ -173,16 +181,16 @@ export function AdminProductEditPage() {
                 value={price}
                 onChange={(e) => setPrice(e.target.value)}
                 required
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
               />
             </div>
-            <div className="text-sm text-gray-500">
+            <div className="text-xs text-gray-500">
               SKU: <span className="font-medium text-gray-700">{product.sku}</span>
             </div>
             <button
               type="submit"
               disabled={savingInfo}
-              className="w-full py-2 rounded-lg bg-blue-600 text-white font-bold hover:bg-blue-700 disabled:bg-gray-300"
+              className="w-full py-2 rounded-lg bg-blue-600 text-white font-medium text-sm hover:bg-blue-700 disabled:bg-gray-300"
             >
               {savingInfo ? 'Saving...' : 'Save Info'}
             </button>
@@ -190,15 +198,15 @@ export function AdminProductEditPage() {
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Product Image</label>
-            <div className="bg-gray-100 rounded-md h-40 flex items-center justify-center overflow-hidden mb-2">
+            <div className="bg-gray-100 rounded-md h-32 flex items-center justify-center overflow-hidden mb-2">
               {product.image_path ? (
                 <img src={getImageUrl(product.image_path)} alt={product.name} className="h-full w-full object-cover" />
               ) : (
-                <span className="text-gray-400 text-sm">No Image</span>
+                <span className="text-gray-400 text-xs">No Image</span>
               )}
             </div>
             <label className={clsx(
-              'w-full py-2 rounded-lg bg-gray-100 text-gray-700 font-medium text-center cursor-pointer hover:bg-gray-200 block',
+              'w-full py-2 rounded-lg bg-gray-100 text-gray-700 font-medium text-center cursor-pointer hover:bg-gray-200 block text-sm',
               uploadingImage && 'opacity-50 cursor-not-allowed'
             )}>
               {uploadingImage ? 'Uploading...' : 'Change Image'}
@@ -208,12 +216,12 @@ export function AdminProductEditPage() {
         </div>
 
         {/* Section 2: Stock Adjustment */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 space-y-4">
-          <h2 className="font-semibold text-gray-900">Stock Adjustment</h2>
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3 space-y-3">
+          <h2 className="font-semibold text-gray-900 text-sm">Stock Adjustment</h2>
 
           <div className="p-3 bg-gray-50 rounded-lg text-center">
-            <div className="text-sm text-gray-500">Current Stock</div>
-            <div className="text-3xl font-bold text-blue-600">{product.stock_balance}</div>
+            <div className="text-xs text-gray-500">Current Stock</div>
+            <div className="text-2xl font-bold text-blue-600">{product.stock_balance}</div>
           </div>
 
           <div className="flex gap-2">
@@ -223,27 +231,27 @@ export function AdminProductEditPage() {
               value={adjustQty}
               onChange={(e) => setAdjustQty(e.target.value)}
               placeholder="Qty"
-              className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-20 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
             />
             <button
               onClick={() => handleAdjustStock(1)}
               disabled={adjusting || qty <= 0}
               className={clsx(
-                'px-4 py-2 rounded-lg font-bold',
+                'flex-1 py-2 rounded-lg font-medium text-sm',
                 qty <= 0 ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-green-600 text-white hover:bg-green-700'
               )}
             >
-              Add Stock (+)
+              + Add
             </button>
             <button
               onClick={() => handleAdjustStock(-1)}
               disabled={adjusting || !canReduce}
               className={clsx(
-                'px-4 py-2 rounded-lg font-bold',
+                'flex-1 py-2 rounded-lg font-medium text-sm',
                 !canReduce ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-red-600 text-white hover:bg-red-700'
               )}
             >
-              Reduce (-)
+              - Reduce
             </button>
           </div>
           {adjustQty && qty > product.stock_balance && (
@@ -252,12 +260,12 @@ export function AdminProductEditPage() {
         </div>
 
         {/* Section 3: Danger Zone */}
-        <div className="bg-white rounded-lg shadow-sm border border-red-200 p-4 space-y-3">
-          <h2 className="font-semibold text-red-600">Danger Zone</h2>
-          <p className="text-sm text-gray-500">Once deleted, this product will no longer appear on the shop dashboard.</p>
+        <div className="bg-white rounded-lg shadow-sm border border-red-200 p-3 space-y-2">
+          <h2 className="font-semibold text-red-600 text-sm">Danger Zone</h2>
+          <p className="text-xs text-gray-500">Once deleted, this product will no longer appear on the shop dashboard.</p>
           <button
             onClick={() => setShowDeleteConfirm(true)}
-            className="w-full py-2 rounded-lg bg-red-600 text-white font-bold hover:bg-red-700"
+            className="w-full py-2 rounded-lg bg-red-600 text-white font-medium text-sm hover:bg-red-700"
           >
             Delete Product
           </button>

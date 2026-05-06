@@ -184,7 +184,7 @@ export const CartDrawer: React.FC = () => {
       )}>
         {/* Drawer header */}
         <div className="flex items-center justify-between p-4 border-b bg-white">
-          <h2 className="text-lg font-bold">Shopping Cart</h2>
+          <h2 className="text-base font-bold">Shopping Cart</h2>
           <button
             onClick={() => toggleDrawer(false)}
             className="p-2 hover:bg-gray-100 rounded-full"

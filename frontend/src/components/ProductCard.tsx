@@ -35,7 +35,15 @@ const stockStatusStyles: Record<StockStatus, string> = {
 };
 
 // Backend server URL (for constructing full image URL)
-const STATIC_BASE_URL = import.meta.env.VITE_STATIC_BASE_URL || 'http://localhost:8000';
+const getStaticBaseUrl = () => {
+  if (import.meta.env.VITE_STATIC_BASE_URL) {
+    return import.meta.env.VITE_STATIC_BASE_URL;
+  }
+  const protocol = window.location.protocol;
+  const hostname = window.location.hostname;
+  return `${protocol}//${hostname}:8000`;
+};
+const STATIC_BASE_URL = getStaticBaseUrl();
 
 // Construct full image path with proper /
 const getImageUrl = (imagePath: string | null | undefined): string => {
@@ -84,6 +92,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
     setShowError(false);
     setErrorMessage('');
     setIsModalOpen(true);
+    // Don't focus input - let user click to type if needed
   };
 
   // Close modal
@@ -114,15 +123,35 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
   // Handle direct input change
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
-    setInputValue(value);
-
-    // Parse and validate
-    const parsed = parseInt(value, 10);
     const maxAddable = getMaxAddable();
-    if (!isNaN(parsed) && parsed >= 1 && parsed <= maxAddable) {
-      setQuantity(parsed);
-      setShowError(false);
+
+    // Allow empty input temporarily for typing experience
+    if (value === '') {
+      setInputValue(value);
+      setQuantity(0);
+      return;
     }
+
+    // Parse the value
+    const parsed = parseInt(value, 10);
+
+    // If not a valid number, don't update
+    if (isNaN(parsed)) {
+      return;
+    }
+
+    // Clamp to valid range immediately
+    if (parsed < 1) {
+      setInputValue('1');
+      setQuantity(1);
+    } else if (parsed > maxAddable) {
+      setInputValue(String(maxAddable));
+      setQuantity(maxAddable);
+    } else {
+      setInputValue(String(parsed));
+      setQuantity(parsed);
+    }
+    setShowError(false);
   };
 
   // Handle input blur - reset to valid quantity if invalid
@@ -153,14 +182,6 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
     handleCloseModal();
   };
 
-  // Focus input when modal opens
-  useEffect(() => {
-    if (isModalOpen && inputRef.current) {
-      inputRef.current.focus();
-      inputRef.current.select();
-    }
-  }, [isModalOpen]);
-
   // Handle Escape key to close modal
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
@@ -174,9 +195,9 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
 
   return (
     <>
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 flex flex-col h-full">
         {/* Product image area */}
-        <div className="bg-gray-100 rounded-md h-32 mb-3 flex items-center justify-center overflow-hidden">
+        <div className="bg-gray-100 rounded-md h-32 mb-3 flex items-center justify-center overflow-hidden shrink-0">
           {product.image_path ? (
             <img
               src={getImageUrl(product.image_path)}
@@ -189,20 +210,20 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
         </div>
 
         {/* SKU label */}
-        <div className="text-xs text-gray-500 mb-1">{product.sku}</div>
+        <div className="text-xs text-gray-500 mb-1 shrink-0">{product.sku}</div>
 
-        {/* Product name */}
-        <h3 className="font-medium text-gray-900 mb-1 line-clamp-2">
+        {/* Product name - takes remaining space */}
+        <h3 className="font-medium text-gray-900 mb-2 line-clamp-2 min-h-[2.5rem]">
           {product.name}
         </h3>
 
         {/* Price */}
-        <div className="text-lg font-bold text-blue-600 mb-2">
+        <div className="text-lg font-bold text-blue-600 mb-2 shrink-0">
           ${product.price.toFixed(2)}
         </div>
 
         {/* Stock status badge */}
-        <div className="mb-3">
+        <div className="mb-3 shrink-0">
           <span className={clsx(
             'inline-block px-2 py-1 rounded-full text-xs font-medium',
             stockStatusStyles[stockStatus]
@@ -214,12 +235,12 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
           </span>
         </div>
 
-        {/* Add button */}
+        {/* Add button - always at bottom */}
         <button
           onClick={handleOpenModal}
           disabled={isOutOfStock}
           className={clsx(
-            'w-full py-2 rounded-md font-medium transition-colors',
+            'w-full py-2 rounded-md font-medium transition-colors mt-auto',
             isOutOfStock
               ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
               : 'bg-blue-600 text-white hover:bg-blue-700 active:bg-blue-800'
@@ -294,7 +315,9 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
                 {/* Quantity input */}
                 <input
                   ref={inputRef}
-                  type="text"
+                  type="number"
+                  min="1"
+                  max={getMaxAddable()}
                   value={inputValue}
                   onChange={handleInputChange}
                   onBlur={handleInputBlur}
@@ -304,10 +327,10 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
                 {/* Increase button */}
                 <button
                   onClick={() => handleQuantityChange(1)}
-                  disabled={quantity >= product.stock_balance}
+                  disabled={quantity >= getMaxAddable()}
                   className={clsx(
                     'w-12 h-12 rounded-full font-bold text-xl transition-colors',
-                    quantity >= product.stock_balance
+                    quantity >= getMaxAddable()
                       ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
                       : 'bg-blue-600 text-white hover:bg-blue-700'
                   )}
@@ -334,10 +357,10 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
                 </button>
                 <button
                   onClick={handleConfirmAdd}
-                  disabled={quantity < 1 || quantity > product.stock_balance}
+                  disabled={quantity < 1 || quantity > getMaxAddable()}
                   className={clsx(
                     'flex-1 py-3 rounded-lg font-bold text-white transition-colors',
-                    quantity < 1 || quantity > product.stock_balance
+                    quantity < 1 || quantity > getMaxAddable()
                       ? 'bg-gray-300 cursor-not-allowed'
                       : 'bg-blue-600 hover:bg-blue-700'
                   )}

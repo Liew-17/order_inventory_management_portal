@@ -83,16 +83,22 @@ export async function fetchOrder(orderId: string): Promise<OrderResponse> {
  * Flow:
  * GET /api/v1/orders → Returns OrderResponse[] → OrdersListPage renders
  *
- * @param orderId - Optional: filter by specific order ID
+ * @param orderId - Optional: filter by order ID (partial match supported)
  * @param status - Optional: filter by status (PENDING_PAYMENT, PAYMENT_UNDER_REVIEW, COMPLETED)
+ * @param skip - Number of records to skip (for pagination)
+ * @param limit - Max number of records to return (default 50)
  */
 export async function fetchOrders(
   orderId?: string,
-  status?: string
+  status?: string,
+  skip: number = 0,
+  limit: number = 25
 ): Promise<OrderResponse[]> {
   const params = new URLSearchParams();
-  if (orderId) params.append('order_id', orderId);
+  if (orderId && orderId.trim()) params.append('order_id', orderId.trim());
   if (status) params.append('status', status);
+  params.append('skip', String(skip));
+  params.append('limit', String(limit));
 
   const url = params.toString() ? `/orders?${params.toString()}` : '/orders';
   const response = await apiClient.get<OrderResponse[]>(url);

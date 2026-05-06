@@ -30,20 +30,20 @@ export function AdminProductListPage() {
   return (
     <div className="min-h-screen bg-gray-100">
       <div className="sticky top-0 bg-white shadow-sm z-10 p-4">
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
           <button
             onClick={() => navigate('/')}
-            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+            className="p-2 hover:bg-gray-100 rounded-lg transition-colors shrink-0"
           >
             ←
           </button>
-          <h1 className="text-lg font-bold text-gray-900">Product Management</h1>
+          <h1 className="text-base font-bold text-gray-900 truncate">Products</h1>
           <div className="flex-1" />
           <button
             onClick={() => navigate('/admin/products/new')}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium"
+            className="px-3 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium text-sm shrink-0"
           >
-            + Add New Product
+            + New
           </button>
         </div>
       </div>
@@ -78,25 +78,26 @@ export function AdminProductListPage() {
             {products.map((product) => (
               <div
                 key={product.id}
-                className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 flex items-center gap-3"
+                className="bg-white rounded-lg shadow-sm border border-gray-200 p-4"
               >
-                <div className="flex-1 min-w-0">
-                  <div className="font-medium text-gray-900 truncate">{product.name}</div>
-                  <div className="text-sm text-gray-500 space-x-4">
-                    <span>SKU: {product.sku}</span>
-                    <span>Price: ${product.price.toFixed(2)}</span>
-                    <span>Stock: {product.stock_balance}</span>
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex-1 min-w-0">
+                    <div className="font-medium text-gray-900">{product.name}</div>
+                    <div className="text-sm text-gray-500 mt-1 break-all">SKU: {product.sku}</div>
+                    <div className="text-sm text-gray-500 mt-1">
+                      Price: ${product.price.toFixed(2)} | Stock: {product.stock_balance}
+                    </div>
                   </div>
+                  <button
+                    onClick={() => navigate(`/admin/products/${product.id}/edit`)}
+                    className={clsx(
+                      'px-3 py-1.5 rounded-lg text-sm font-medium shrink-0',
+                      'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    )}
+                  >
+                    Edit
+                  </button>
                 </div>
-                <button
-                  onClick={() => navigate(`/admin/products/${product.id}/edit`)}
-                  className={clsx(
-                    'px-3 py-1.5 rounded-lg text-sm font-medium',
-                    'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  )}
-                >
-                  Edit / Manage
-                </button>
               </div>
             ))}
           </div>

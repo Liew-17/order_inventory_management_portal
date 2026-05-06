@@ -8,7 +8,7 @@
  * - Click card to navigate to order detail page
  */
 
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { clsx } from 'clsx';
 import { fetchOrders } from '../api/endpoints';
@@ -17,19 +17,19 @@ import type { OrderResponse, OrderStatus } from '../types';
 // Status filter options
 const statusFilters = [
   { label: 'All', value: null },
-  { label: 'Pending Payment', value: 'PENDING_PAYMENT' },
-  { label: 'Under Review', value: 'PAYMENT_UNDER_REVIEW' },
+  { label: 'Pending', value: 'PENDING_PAYMENT' },
+  { label: 'Review', value: 'PAYMENT_UNDER_REVIEW' },
   { label: 'Completed', value: 'COMPLETED' },
 ];
 
 // Status config for display
 const statusConfig: Record<OrderStatus, { label: string; className: string }> = {
   PENDING_PAYMENT: {
-    label: 'Pending Payment',
+    label: 'Pending',
     className: 'bg-yellow-100 text-yellow-800',
   },
   PAYMENT_UNDER_REVIEW: {
-    label: 'Under Review',
+    label: 'Review',
     className: 'bg-blue-100 text-blue-800',
   },
   COMPLETED: {
@@ -40,81 +40,101 @@ const statusConfig: Record<OrderStatus, { label: string; className: string }> = 
 
 export const OrdersListPage: React.FC = () => {
   const navigate = useNavigate();
+  const requestIdRef = useRef(0);
 
   // Local state
   const [orders, setOrders] = useState<OrderResponse[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [searchId, setSearchId] = useState('');
   const [selectedStatus, setSelectedStatus] = useState<string | null>(null);
+  const [hasMore, setHasMore] = useState(false);
+  const pageSize = 25;
 
   // Load orders data
-  const loadOrders = useCallback(async () => {
-    setLoading(true);
+  const loadOrders = useCallback(async (skip = 0, append = false, search?: string, status?: string) => {
+    const currentRequestId = ++requestIdRef.current;
+
+    if (append) {
+      setLoadingMore(true);
+    } else {
+      setLoading(true);
+    }
     setError(null);
 
     try {
       const data = await fetchOrders(
-        searchId || undefined,
-        selectedStatus || undefined
+        search || undefined,
+        status || undefined,
+        skip,
+        pageSize
       );
-      setOrders(data);
+      if (currentRequestId !== requestIdRef.current) return; // Ignore stale response
+      if (append) {
+        setOrders(prev => [...prev, ...data]);
+      } else {
+        setOrders(data);
+      }
+      setHasMore(data.length === pageSize);
     } catch (err) {
+      if (currentRequestId !== requestIdRef.current) return; // Ignore stale response
       setError(err instanceof Error ? err.message : 'Failed to load orders');
     } finally {
+      if (currentRequestId !== requestIdRef.current) return; // Ignore stale response
       setLoading(false);
+      setLoadingMore(false);
     }
-  }, [searchId, selectedStatus]);
+  }, []);
 
   // Load on mount and when filters change
   useEffect(() => {
-    loadOrders();
-  }, [loadOrders]);
+    const timer = setTimeout(() => {
+      loadOrders(0, false, searchId, selectedStatus || undefined);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchId, selectedStatus]);
 
-  // Handle search by order ID
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    loadOrders();
+  // Handle status filter change
+  const handleStatusChange = (status: string | null) => {
+    setSelectedStatus(status);
+    setSearchId('');
+  };
+
+  // Handle load more
+  const handleLoadMore = () => {
+    loadOrders(orders.length, true, searchId, selectedStatus || undefined);
   };
 
   return (
     <div className="min-h-screen bg-gray-100">
       {/* Top navigation */}
       <div className="sticky top-0 bg-white shadow-sm z-10 p-4">
-        <div className="flex items-center gap-3 mb-4">
-          {/* Back button */}
+        <div className="flex items-center gap-2 mb-4">
           <button
             onClick={() => navigate('/')}
-            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+            className="p-2 hover:bg-gray-100 rounded-lg transition-colors shrink-0"
           >
             ←
           </button>
-          <h1 className="text-lg font-bold">My Orders</h1>
+          <h1 className="text-base font-bold">My Orders</h1>
         </div>
 
         {/* Search form */}
-        <form onSubmit={handleSearch} className="flex gap-2 mb-4">
-          <input
-            type="text"
-            placeholder="Search by Order ID..."
-            value={searchId}
-            onChange={(e) => setSearchId(e.target.value)}
-            className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-          <button
-            type="submit"
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-          >
-            Search
-          </button>
-        </form>
+        <input
+          type="text"
+          placeholder="Search by Order ID..."
+          value={searchId}
+          onChange={(e) => setSearchId(e.target.value)}
+          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+        />
 
         {/* Status filter tabs */}
-        <div className="flex gap-2 overflow-x-auto pb-2">
+        <div className="flex gap-2 overflow-x-auto pb-2 mt-4">
           {statusFilters.map((filter) => (
             <button
               key={filter.label}
-              onClick={() => setSelectedStatus(filter.value)}
+              onClick={() => handleStatusChange(filter.value)}
               className={clsx(
                 'px-3 py-1 rounded-full text-sm font-medium whitespace-nowrap transition-colors',
                 selectedStatus === filter.value
@@ -141,7 +161,7 @@ export const OrdersListPage: React.FC = () => {
           <div className="text-center py-8">
             <p className="text-red-600 mb-4">{error}</p>
             <button
-              onClick={loadOrders}
+              onClick={() => loadOrders(0, false, searchId, selectedStatus || undefined)}
               className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
             >
               Retry
@@ -188,6 +208,18 @@ export const OrdersListPage: React.FC = () => {
                 </div>
               );
             })}
+
+            {hasMore && (
+              <div className="text-center pt-4">
+                <button
+                  onClick={handleLoadMore}
+                  disabled={loadingMore}
+                  className="px-6 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 disabled:opacity-50"
+                >
+                  {loadingMore ? 'Loading...' : 'Load More'}
+                </button>
+              </div>
+            )}
           </div>
         )}
       </div>

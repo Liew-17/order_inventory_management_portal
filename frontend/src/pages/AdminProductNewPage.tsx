@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { createProduct } from '../api/endpoints';
 import { useToast } from '../components/Toast';
 
@@ -35,26 +35,26 @@ export function AdminProductNewPage() {
   return (
     <div className="min-h-screen bg-gray-100">
       <div className="sticky top-0 bg-white shadow-sm z-10 p-4">
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
           <button
             onClick={() => navigate('/admin/products')}
-            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+            className="p-2 hover:bg-gray-100 rounded-lg transition-colors shrink-0"
           >
             ←
           </button>
-          <h1 className="text-lg font-bold text-gray-900">Add New Product</h1>
+          <h1 className="text-base font-bold text-gray-900">New Product</h1>
         </div>
       </div>
 
-      <div className="p-4 flex justify-center">
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 w-full max-w-md">
+      <div className="p-3">
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 space-y-3">
           {error && (
-            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">
+            <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">
               {error}
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-3">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Product Name</label>
               <input
@@ -62,7 +62,7 @@ export function AdminProductNewPage() {
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 required
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
                 placeholder="e.g. Wireless Mouse"
               />
             </div>
@@ -76,7 +76,7 @@ export function AdminProductNewPage() {
                 value={price}
                 onChange={(e) => setPrice(e.target.value)}
                 required
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
                 placeholder="0.00"
               />
             </div>
@@ -89,7 +89,7 @@ export function AdminProductNewPage() {
                 value={initialStock}
                 onChange={(e) => setInitialStock(e.target.value)}
                 required
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
                 placeholder="0"
               />
             </div>
@@ -97,7 +97,7 @@ export function AdminProductNewPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3 rounded-lg bg-blue-600 text-white font-bold hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
+              className="w-full py-2 rounded-lg bg-blue-600 text-white font-medium text-sm hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
             >
               {loading ? 'Adding...' : 'Add Product'}
             </button>
