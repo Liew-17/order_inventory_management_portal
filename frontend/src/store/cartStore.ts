@@ -93,7 +93,7 @@ export const useCartStore = create<CartState>()(
 
       // ========== Actions 实现 ==========
 
-      addItem: (product: Product) => {
+      addItem: (product: Product, quantity: number = 1) => {
         set((state) => {
           // 检查该商品是否已在购物车
           const existingIndex = state.items.findIndex(
@@ -105,7 +105,7 @@ export const useCartStore = create<CartState>()(
             const newItems = [...state.items];
             newItems[existingIndex] = {
               ...newItems[existingIndex],
-              quantity: newItems[existingIndex].quantity + 1,
+              quantity: newItems[existingIndex].quantity + quantity,
             };
             return { items: newItems };
           } else {
@@ -113,7 +113,7 @@ export const useCartStore = create<CartState>()(
             return {
               items: [
                 ...state.items,
-                { product, quantity: 1 },
+                { product, quantity },
               ],
             };
           }

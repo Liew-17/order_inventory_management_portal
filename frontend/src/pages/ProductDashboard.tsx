@@ -33,7 +33,8 @@ export const ProductDashboard: React.FC = () => {
   const [search, setSearch] = useState('');
 
   // Get cart state from Zustand store (for badge count display)
-  const totalItems = useCartStore((state) => state.totalItems);
+  const items = useCartStore((state) => state.items);
+  const totalItems = items.reduce((sum, item) => sum + item.quantity, 0);
   const toggleDrawer = useCartStore((state) => state.toggleDrawer);
 
   // Load products data
@@ -88,9 +89,9 @@ export const ProductDashboard: React.FC = () => {
             <span className="text-xl">🛒</span>
 
             {/* Count badge */}
-            {totalItems() > 0 && (
+            {totalItems > 0 && (
               <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold w-5 h-5 rounded-full flex items-center justify-center">
-                {totalItems()}
+                {totalItems}
               </span>
             )}
           </button>

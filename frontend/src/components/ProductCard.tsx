@@ -149,9 +149,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
     }
 
     // Add item to cart with specified quantity
-    for (let i = 0; i < quantity; i++) {
-      addItem(product);
-    }
+    addItem(product, quantity);
     handleCloseModal();
   };
 
